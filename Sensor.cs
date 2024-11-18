@@ -7,7 +7,7 @@ public class Sensor
     public string Location { get; set; }
     public double MinValue { get; set; }
     public double MaxValue { get; set; }
-    private SQLiteConnection DbConnection;
+    private SQLiteConnection? DbConnection;  // Marked as nullable
 
     public Sensor(string name, string location, double minValue, double maxValue)
     {
