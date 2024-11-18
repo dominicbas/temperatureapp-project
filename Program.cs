@@ -30,11 +30,11 @@ class Program
                 throw new InvalidOperationException("Sensor name or location is missing in appsettings.json");
             }
 
-            // Initialize the sensor using the constructor
+            // Initialize the sensor
             var sensor = new Sensor(name, location, minValue, maxValue);
 
-            // Start the sensor, which includes data validation
-            sensor.StartSensor();
+            // Start the sensor
+            sensor.StartSensor();  // This will also store data and log it
         }
         catch (Exception ex)
         {
@@ -42,15 +42,14 @@ class Program
         }
     }
 
+    // Method to load configuration from a JSON file
     static JObject LoadConfiguration(string filePath)
     {
-        // Check if configuration file exists
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"Configuration file '{filePath}' not found.");
         }
 
-        // Read and parse the JSON configuration file
         var json = File.ReadAllText(filePath);
         return JObject.Parse(json);
     }
