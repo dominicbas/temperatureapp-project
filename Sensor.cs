@@ -34,5 +34,6 @@ public class Sensor
         cmd.ExecuteNonQuery();
 
         Console.WriteLine("Database initialized and table created (if not existing).");
+ 
     }
 }
