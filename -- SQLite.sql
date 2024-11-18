@@ -1,0 +1,2 @@
+-- SQLite
+Select * from SensorData
