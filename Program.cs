@@ -30,10 +30,11 @@ class Program
                 throw new InvalidOperationException("Sensor name or location is missing in appsettings.json");
             }
 
-            // Initialize the sensor (which will trigger the database initialization)
+            // Initialize the sensor using the constructor
             var sensor = new Sensor(name, location, minValue, maxValue);
 
-            Console.WriteLine("Database initialized and sensor object created.");
+            // Start the sensor, which includes data validation
+            sensor.StartSensor();
         }
         catch (Exception ex)
         {

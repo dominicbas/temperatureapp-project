@@ -34,6 +34,31 @@ public class Sensor
         cmd.ExecuteNonQuery();
 
         Console.WriteLine("Database initialized and table created (if not existing).");
- 
+    }
+
+    // Method to validate the temperature data
+    public bool ValidateData(double temperature)
+    {
+        // Check if the temperature is within the specified range
+        return temperature >= MinValue && temperature <= MaxValue;
+    }
+
+    // Method to start the sensor and simulate data
+    public void StartSensor()
+    {
+        Console.WriteLine($"Starting sensor: {Name} located at {Location}");
+        
+        Random rand = new Random();
+        double temperature = rand.NextDouble() * (MaxValue - MinValue) + MinValue;
+
+        // Validate the generated temperature
+        if (ValidateData(temperature))
+        {
+            Console.WriteLine($"Valid temperature reading: {temperature}°C");
+        }
+        else
+        {
+            Console.WriteLine($"Invalid temperature reading: {temperature}°C");
+        }
     }
 }
