@@ -1,4 +1,5 @@
 using System;
+using System.Data.SQLite;
 
 public class Sensor
 {
@@ -6,6 +7,7 @@ public class Sensor
     public string Location { get; set; }
     public double MinValue { get; set; }
     public double MaxValue { get; set; }
+    private SQLiteConnection DbConnection;
 
     public Sensor(string name, string location, double minValue, double maxValue)
     {
@@ -13,15 +15,24 @@ public class Sensor
         Location = location;
         MinValue = minValue;
         MaxValue = maxValue;
+        InitialiseDatabase();  // Initialize the database when the sensor is created
     }
 
-    public static Sensor InitialiseSensor(string name, string location, double minValue, double maxValue)
+    private void InitialiseDatabase()
     {
-        return new Sensor(name, location, minValue, maxValue);
-    }
+        // Initialize the SQLite database connection
+        DbConnection = new SQLiteConnection("Data Source=SensorData.db;Version=3;");
+        DbConnection.Open();
 
-    public void StartSensor()
-    {
-        Console.WriteLine($"{Name} sensor initialized at {Location}.");
+        // Create the SensorData table if it doesn't exist
+        var cmd = DbConnection.CreateCommand();
+        cmd.CommandText = @"CREATE TABLE IF NOT EXISTS SensorData (
+                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            Temperature REAL,
+                            Location TEXT)";
+        cmd.ExecuteNonQuery();
+
+        Console.WriteLine("Database initialized and table created (if not existing).");
     }
 }
