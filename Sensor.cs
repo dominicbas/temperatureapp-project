@@ -12,6 +12,7 @@ public class Sensor
     public double MaxValue { get; set; }
     private SQLiteConnection? DbConnection;
     private List<double> DataHistory { get; set; } = new List<double>();
+    private bool IsRunning { get; set; }
 
     public Sensor(string name, string location, double minValue, double maxValue)
     {
@@ -45,9 +46,22 @@ public class Sensor
 
     public void StartSensor()
     {
-        Console.WriteLine($"Starting sensor: {Name} located at {Location}");
+        IsRunning = true;
+        Console.WriteLine($"Starting sensor: {Name} located at {Location}. Press 'Q' to stop.");
 
-        while (true) // Simulating continuous readings
+        // Task to monitor for user input to shut down the sensor
+        Task.Run(() =>
+        {
+            while (IsRunning)
+            {
+                if (Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Q)
+                {
+                    ShutdownSensor();
+                }
+            }
+        });
+
+        while (IsRunning)
         {
             double temperature = SimulateData();
             if (ValidateData(temperature))
@@ -56,6 +70,7 @@ public class Sensor
                 StoreData(temperature);
                 SmoothData();
                 DetectAnomaly(temperature);
+                CheckThreshold(temperature); // Check thresholds for alerts
             }
             else
             {
@@ -124,5 +139,31 @@ public class Sensor
         }
 
         return isAnomaly;
+    }
+
+    public void CheckThreshold(double sensorData)
+    {
+        double lowerAlertThreshold = MinValue + (MaxValue - MinValue) * 0.1; // Adjust thresholds as needed
+        double upperAlertThreshold = MaxValue - (MaxValue - MinValue) * 0.1;
+
+        if (sensorData < lowerAlertThreshold)
+        {
+            Console.WriteLine($"ALERT: Temperature below {lowerAlertThreshold:F2}°C! ({sensorData:F2}°C)");
+        }
+        else if (sensorData > upperAlertThreshold)
+        {
+            Console.WriteLine($"ALERT: Temperature above {upperAlertThreshold:F2}°C! ({sensorData:F2}°C)");
+        }
+    }
+
+    public void ShutdownSensor()
+    {
+        IsRunning = false;
+        DataHistory.Clear();
+        Console.WriteLine("Sensor shutdown complete.");
+        if (DbConnection != null)
+        {
+            DbConnection.Close();
+        }
     }
 }
