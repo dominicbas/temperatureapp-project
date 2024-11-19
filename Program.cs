@@ -23,6 +23,8 @@ class Program
             string location = sensorConfig["Location"]?.ToString();
             double minValue = sensorConfig["MinValue"] != null ? double.Parse(sensorConfig["MinValue"].ToString()) : 0;
             double maxValue = sensorConfig["MaxValue"] != null ? double.Parse(sensorConfig["MaxValue"].ToString()) : 0;
+            double lowerThreshold = sensorConfig["LowerThreshold"] != null ? double.Parse(sensorConfig["LowerThreshold"].ToString()) : 0;
+            double upperThreshold = sensorConfig["UpperThreshold"] != null ? double.Parse(sensorConfig["UpperThreshold"].ToString()) : 0;
 
             // Check if any of the required values are missing
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(location))
@@ -30,11 +32,17 @@ class Program
                 throw new InvalidOperationException("Sensor name or location is missing in appsettings.json");
             }
 
-            // Initialize the sensor
-            var sensor = new Sensor(name, location, minValue, maxValue);
-
+            // Initialize the sensor with thresholds
+            var sensor = Sensor.InitialiseSensor(name, location, minValue, maxValue, lowerThreshold, upperThreshold);
+            
             // Start the sensor
             sensor.StartSensor();
+
+            Console.WriteLine("Press any key to stop the sensor...");
+            Console.ReadKey();
+            
+            // Shutdown the sensor
+            sensor.ShutdownSensor();
         }
         catch (Exception ex)
         {
@@ -44,11 +52,13 @@ class Program
 
     static JObject LoadConfiguration(string filePath)
     {
+        // Check if configuration file exists
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"Configuration file '{filePath}' not found.");
         }
 
+        // Read and parse the JSON configuration file
         var json = File.ReadAllText(filePath);
         return JObject.Parse(json);
     }

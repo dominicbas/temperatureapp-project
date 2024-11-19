@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
 using System.IO;
 using System.Linq;
+using System.Data.SQLite;
+using System.Threading.Tasks;
 
 public class Sensor
 {
@@ -10,24 +11,32 @@ public class Sensor
     public string Location { get; set; }
     public double MinValue { get; set; }
     public double MaxValue { get; set; }
-    private SQLiteConnection? DbConnection;
+    public double LowerThreshold { get; set; }  // Added LowerThreshold
+    public double UpperThreshold { get; set; }  // Added UpperThreshold
     private List<double> DataHistory { get; set; } = new List<double>();
     private bool IsRunning { get; set; }
+    private SQLiteConnection DbConnection;
 
-    public Sensor(string name, string location, double minValue, double maxValue)
+    public Sensor(string name, string location, double minValue, double maxValue, double lowerThreshold, double upperThreshold)
     {
         Name = name;
         Location = location;
         MinValue = minValue;
         MaxValue = maxValue;
+        LowerThreshold = lowerThreshold;
+        UpperThreshold = upperThreshold;
         InitialiseDatabase();
+    }
+
+    public static Sensor InitialiseSensor(string name, string location, double minValue, double maxValue, double lowerThreshold, double upperThreshold)
+    {
+        return new Sensor(name, location, minValue, maxValue, lowerThreshold, upperThreshold);
     }
 
     private void InitialiseDatabase()
     {
-        DbConnection = new SQLiteConnection("Data Source=SensorData.db;Version=3;");
+        DbConnection = new SQLiteConnection("Data Source=Sensor.db;Version=3;");
         DbConnection.Open();
-
         var cmd = DbConnection.CreateCommand();
         cmd.CommandText = @"CREATE TABLE IF NOT EXISTS SensorData (
                             Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,21 +44,14 @@ public class Sensor
                             Temperature REAL,
                             Location TEXT)";
         cmd.ExecuteNonQuery();
-
-        Console.WriteLine("Database initialized and table created (if not existing).");
-    }
-
-    public bool ValidateData(double temperature)
-    {
-        return temperature >= MinValue && temperature <= MaxValue;
     }
 
     public void StartSensor()
     {
         IsRunning = true;
-        Console.WriteLine($"Starting sensor: {Name} located at {Location}. Press 'Q' to stop.");
+        Console.WriteLine($"{Name} sensor started at {Location}. Press 'Q' to stop.");
 
-        // Task to monitor for user input to shut down the sensor
+        // Start a separate task to listen for user input (shutdown command)
         Task.Run(() =>
         {
             while (IsRunning)
@@ -63,61 +65,65 @@ public class Sensor
 
         while (IsRunning)
         {
-            double temperature = SimulateData();
-            if (ValidateData(temperature))
+            var reading = SimulateData();
+            if (ValidateData(reading))
             {
-                Console.WriteLine($"Valid temperature reading: {temperature}°C");
-                StoreData(temperature);
+                LogData(reading);
+                StoreData(reading);
                 SmoothData();
-                DetectAnomaly(temperature);
-                CheckThreshold(temperature); // Check thresholds for alerts
+                DetectAnomaly(reading);
+                CheckThreshold(reading);  // Checking thresholds
             }
-            else
-            {
-                Console.WriteLine($"Invalid temperature reading: {temperature}°C");
-            }
-
-            System.Threading.Thread.Sleep(1000); // Delay to simulate real-time data
+            System.Threading.Thread.Sleep(1000); // Simulate real-time data reading every second
         }
     }
 
-    private double SimulateData()
+    public double SimulateData()
     {
-        var rand = new Random();
-        return rand.NextDouble() * (MaxValue - MinValue) + MinValue;
-    }
+        var random = new Random();
+        double noise = random.NextDouble() * 0.5; // Small noise
+        double reading = MinValue + (MaxValue - MinValue) * random.NextDouble() + noise;
 
-    private void StoreData(double temperature)
-    {
-        if (DbConnection == null)
+        // Simulate faults (irregular spikes or sensor failure)
+        if (random.Next(0, 100) < 5) // 5% chance of anomaly
         {
-            Console.WriteLine("Database connection is not initialized.");
-            return;
+            reading += random.Next(5, 10); // Irregular spike
         }
-
-        var cmd = DbConnection.CreateCommand();
-        cmd.CommandText = @"INSERT INTO SensorData (Temperature, Location) 
-                            VALUES (@temperature, @location)";
-        cmd.Parameters.AddWithValue("@temperature", temperature);
-        cmd.Parameters.AddWithValue("@location", Location);
-
-        int rowsAffected = cmd.ExecuteNonQuery();
-        Console.WriteLine($"Data stored successfully. Rows affected: {rowsAffected}");
-        DataLog(temperature);
-        DataHistory.Add(temperature);
+        Console.WriteLine($"Simulated Reading: {reading}");
+        return reading;
     }
 
-    private void DataLog(double temperature)
+    public bool ValidateData(double sensorData)
     {
-        string logMessage = $"{DateTime.Now}: Temperature Reading - {temperature}°C at {Location}";
+        bool isValid = sensorData >= MinValue && sensorData <= MaxValue;
+        if (!isValid)
+        {
+            Console.WriteLine($"[{DateTime.Now}] Invalid data detected: {sensorData:F2}°C is outside the range [{MinValue}°C, {MaxValue}°C].");
+        }
+        return isValid;
+    }
+
+    public void LogData(double sensorData)
+    {
+        string logMessage = $"{DateTime.Now}: Temperature Reading - {sensorData}°C";
+        Console.WriteLine($"[{DateTime.Now}] Sensor: {Name}, Location: {Location}, Temperature: {sensorData:F2}°C");
         File.AppendAllText("SensorLog.txt", logMessage + Environment.NewLine);
-        Console.WriteLine($"Logged data: {logMessage}");
+    }
+
+    public void StoreData(double sensorData)
+    {
+        DataHistory.Add(sensorData);
+        using var cmd = DbConnection.CreateCommand();
+        cmd.CommandText = "INSERT INTO SensorData (Temperature, Location) VALUES (@temperature, @location)";
+        cmd.Parameters.AddWithValue("@temperature", sensorData);
+        cmd.Parameters.AddWithValue("@location", Location);
+        cmd.ExecuteNonQuery();
     }
 
     public double SmoothData()
     {
-        if (DataHistory.Count < 3) return DataHistory.Last();
-        double smoothedValue = DataHistory.Skip(Math.Max(0, DataHistory.Count - 3)).Average();
+        if (DataHistory.Count < 3) return DataHistory.Last(); // Not enough data to smooth
+        double smoothedValue = DataHistory.Skip(Math.Max(0, DataHistory.Count() - 3)).Average();
         Console.WriteLine($"Smoothed Data: {smoothedValue}°C");
         return smoothedValue;
     }
@@ -126,16 +132,17 @@ public class Sensor
     {
         if (DataHistory.Count < 5)
         {
-            return false; // Not enough data for anomaly detection
+            // Not enough data to perform anomaly detection
+            return false;
         }
 
         double recentAverage = DataHistory.Skip(Math.Max(0, DataHistory.Count - 5)).Average();
-        double threshold = 0.3;
+        double threshold = 0.3; // You can adjust this threshold for sensitivity
 
         bool isAnomaly = Math.Abs(sensorData - recentAverage) > threshold;
         if (isAnomaly)
         {
-            Console.WriteLine($"Anomaly detected! {sensorData:F2}°C deviates from recent average: {recentAverage:F2}°C");
+            Console.WriteLine($"[{DateTime.Now}] Anomaly detected! Temperature: {sensorData:F2}°C deviates from recent average: {recentAverage:F2}°C");
         }
 
         return isAnomaly;
@@ -143,16 +150,18 @@ public class Sensor
 
     public void CheckThreshold(double sensorData)
     {
-        double lowerAlertThreshold = MinValue + (MaxValue - MinValue) * 0.1; // Adjust thresholds as needed
-        double upperAlertThreshold = MaxValue - (MaxValue - MinValue) * 0.1;
+        // Define the significant threshold values
+        double lowerAlertThreshold = 22.10;  // Lower threshold for alert
+        double upperAlertThreshold = 23.90;  // Upper threshold for alert
 
+        // Check if the sensor data is significantly lower or higher than the thresholds
         if (sensorData < lowerAlertThreshold)
         {
-            Console.WriteLine($"ALERT: Temperature below {lowerAlertThreshold:F2}°C! ({sensorData:F2}°C)");
+            Console.WriteLine($"ALERT: Temperature below {lowerAlertThreshold}°C! ({sensorData:F2}°C)");
         }
         else if (sensorData > upperAlertThreshold)
         {
-            Console.WriteLine($"ALERT: Temperature above {upperAlertThreshold:F2}°C! ({sensorData:F2}°C)");
+            Console.WriteLine($"ALERT: Temperature above {upperAlertThreshold}°C! ({sensorData:F2}°C)");
         }
     }
 
@@ -161,9 +170,6 @@ public class Sensor
         IsRunning = false;
         DataHistory.Clear();
         Console.WriteLine("Sensor shutdown complete.");
-        if (DbConnection != null)
-        {
-            DbConnection.Close();
-        }
+        DbConnection.Close();
     }
 }
