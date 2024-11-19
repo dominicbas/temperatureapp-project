@@ -80,9 +80,13 @@ public class Sensor
         DataLog(temperature);  // Log the stored data
     }
 
-    // Log data storage information to the console
+    // Log data storage information to a text file
     private void DataLog(double temperature)
     {
-        Console.WriteLine($"Data Log - Timestamp: {DateTime.Now}, Location: {Location}, Temperature: {temperature}°C");
+    string logMessage = $"{DateTime.Now}: Temperature Reading - {temperature}°C at {Location}";
+    // Appending the log message to the SensorLog.txt file
+    File.AppendAllText("SensorLog.txt", logMessage + Environment.NewLine);
+    Console.WriteLine($"Logged data: {logMessage}");
     }
+
 }
