@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Data.SQLite;
+using System.IO;
+using System.Linq;
 
 public class Sensor
 {
@@ -7,7 +10,8 @@ public class Sensor
     public string Location { get; set; }
     public double MinValue { get; set; }
     public double MaxValue { get; set; }
-    private SQLiteConnection? DbConnection;  // Nullable connection
+    private SQLiteConnection? DbConnection;
+    private List<double> DataHistory { get; set; } = new List<double>();
 
     public Sensor(string name, string location, double minValue, double maxValue)
     {
@@ -15,16 +19,14 @@ public class Sensor
         Location = location;
         MinValue = minValue;
         MaxValue = maxValue;
-        InitialiseDatabase();  // Initialize the database when the sensor is created
+        InitialiseDatabase();
     }
 
     private void InitialiseDatabase()
     {
-        // Initialize the SQLite database connection
         DbConnection = new SQLiteConnection("Data Source=SensorData.db;Version=3;");
         DbConnection.Open();
 
-        // Create the SensorData table if it doesn't exist
         var cmd = DbConnection.CreateCommand();
         cmd.CommandText = @"CREATE TABLE IF NOT EXISTS SensorData (
                             Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,31 +38,40 @@ public class Sensor
         Console.WriteLine("Database initialized and table created (if not existing).");
     }
 
-    // Validate if the temperature is within acceptable range
     public bool ValidateData(double temperature)
     {
         return temperature >= MinValue && temperature <= MaxValue;
     }
 
-    // Start the sensor and generate temperature readings
     public void StartSensor()
     {
         Console.WriteLine($"Starting sensor: {Name} located at {Location}");
-        Random rand = new Random();
-        double temperature = rand.NextDouble() * (MaxValue - MinValue) + MinValue;
 
-        if (ValidateData(temperature))
+        while (true) // Simulating continuous readings
         {
-            Console.WriteLine($"Valid temperature reading: {temperature}°C");
-            StoreData(temperature);  // Store valid data
-        }
-        else
-        {
-            Console.WriteLine($"Invalid temperature reading: {temperature}°C");
+            double temperature = SimulateData();
+            if (ValidateData(temperature))
+            {
+                Console.WriteLine($"Valid temperature reading: {temperature}°C");
+                StoreData(temperature);
+                SmoothData();
+                DetectAnomaly(temperature);
+            }
+            else
+            {
+                Console.WriteLine($"Invalid temperature reading: {temperature}°C");
+            }
+
+            System.Threading.Thread.Sleep(1000); // Delay to simulate real-time data
         }
     }
 
-    // Store the valid temperature data in the database
+    private double SimulateData()
+    {
+        var rand = new Random();
+        return rand.NextDouble() * (MaxValue - MinValue) + MinValue;
+    }
+
     private void StoreData(double temperature)
     {
         if (DbConnection == null)
@@ -77,16 +88,41 @@ public class Sensor
 
         int rowsAffected = cmd.ExecuteNonQuery();
         Console.WriteLine($"Data stored successfully. Rows affected: {rowsAffected}");
-        DataLog(temperature);  // Log the stored data
+        DataLog(temperature);
+        DataHistory.Add(temperature);
     }
 
-    // Log data storage information to a text file
     private void DataLog(double temperature)
     {
-    string logMessage = $"{DateTime.Now}: Temperature Reading - {temperature}°C at {Location}";
-    // Appending the log message to the SensorLog.txt file
-    File.AppendAllText("SensorLog.txt", logMessage + Environment.NewLine);
-    Console.WriteLine($"Logged data: {logMessage}");
+        string logMessage = $"{DateTime.Now}: Temperature Reading - {temperature}°C at {Location}";
+        File.AppendAllText("SensorLog.txt", logMessage + Environment.NewLine);
+        Console.WriteLine($"Logged data: {logMessage}");
     }
 
+    public double SmoothData()
+    {
+        if (DataHistory.Count < 3) return DataHistory.Last();
+        double smoothedValue = DataHistory.Skip(Math.Max(0, DataHistory.Count - 3)).Average();
+        Console.WriteLine($"Smoothed Data: {smoothedValue}°C");
+        return smoothedValue;
+    }
+
+    public bool DetectAnomaly(double sensorData)
+    {
+        if (DataHistory.Count < 5)
+        {
+            return false; // Not enough data for anomaly detection
+        }
+
+        double recentAverage = DataHistory.Skip(Math.Max(0, DataHistory.Count - 5)).Average();
+        double threshold = 0.3;
+
+        bool isAnomaly = Math.Abs(sensorData - recentAverage) > threshold;
+        if (isAnomaly)
+        {
+            Console.WriteLine($"Anomaly detected! {sensorData:F2}°C deviates from recent average: {recentAverage:F2}°C");
+        }
+
+        return isAnomaly;
+    }
 }

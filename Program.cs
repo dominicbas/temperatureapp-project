@@ -34,7 +34,7 @@ class Program
             var sensor = new Sensor(name, location, minValue, maxValue);
 
             // Start the sensor
-            sensor.StartSensor();  // This will also store data and log it
+            sensor.StartSensor();
         }
         catch (Exception ex)
         {
@@ -42,7 +42,6 @@ class Program
         }
     }
 
-    // Method to load configuration from a JSON file
     static JObject LoadConfiguration(string filePath)
     {
         if (!File.Exists(filePath))
