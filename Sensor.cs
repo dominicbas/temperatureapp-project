@@ -165,11 +165,26 @@ public class Sensor
         }
     }
 
-    public void ShutdownSensor()
+public void ShutdownSensor()
+{
+    IsRunning = false;
+    DataHistory.Clear();
+    Console.WriteLine("Sensor is shutting down...");
+
+    if (DbConnection?.State == System.Data.ConnectionState.Open)
     {
-        IsRunning = false;
-        DataHistory.Clear();
-        Console.WriteLine("Sensor shutdown complete.");
+        using var cmd = DbConnection.CreateCommand();
+        cmd.CommandText = "DELETE FROM SensorData";
+        cmd.ExecuteNonQuery();
+        Console.WriteLine("Sensor database cleared.");
+
         DbConnection.Close();
+        Console.WriteLine("Database connection closed.");
     }
+
+    Console.WriteLine("Sensor shutdown complete.");
+}
+
+
+
 }
