@@ -49,8 +49,6 @@ Created a Kanban Board with a backlog of tasks for the  project
 Researched into .net console applications to gain better understanding of app requirements
 
 
-
-
 Sprint 2: Github and coding initial setup
 
 Objective: 
