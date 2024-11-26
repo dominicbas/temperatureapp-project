@@ -48,65 +48,72 @@ Objectives:
 Created a Kanban Board with a backlog of tasks for the  project
 Researched into .net console applications to gain better understanding of app requirements
 
-
+---
 Sprint 2: Github and coding initial setup
 
 Objective: 
 Create the base .net application with core component files.
 InitialiseSensor(Name, Location, MinValue, MaxValue) 
 
+```c#
 Usage Example: var sensor = Sensor.InitialiseSensor("DataCentreSensor", "Server Room", 22.0, 24.0, 22.10, 23.90); sensor.StartSensor();
-
+```
+---
 Sprint 3: C# coding progress 
 
 Objectives: Implement methods for data simulation, data validation, data logging and data history storage
 Basic sensor simulation: SimulateData(): Generates random temperature values within a specified range.
 
+```c#
 Usage Example: var sensor = new Sensor("TestSensor", "Lab", 20.0, 30.0, 0, 0); var reading = sensor.SimulateData(); Console.WriteLine($"Simulated Temperature: {reading}°C");
-
+```
 Data validation: ValidateData(): Checks if the temperature reading is within the defined MinValue and MaxValue.
 
+```c#
 Usage Example: var isValid = sensor.ValidateData(25.5); Console.WriteLine(isValid ? "Valid Reading" : "Invalid Reading");
+```
 Invalid readings are flagged in the console terminal
-
-
 
 Logging and history storage: LogData(): Logs readings to a text file and console. StoreData(): Saves readings to the SQLite database. Database setup in InitialiseDatabase().
 
+```c#
 Usage Example: sensor.LogData(25.5); sensor.StoreData(25.5);
-
-
-
-
+```
+---
 Sprint 4: Majority of coded features complete and reviewed
 
 Objectives: Implement methods for data smoothing, anomaly detection, and shutdown sensor. Review code from the previous sprint. 
 
 Data Smoothing: SmoothData(): Calculates the average of the last 3 readings. And smooth out that reading using a rolling average
 
+```c#
 Usage Example: var smoothed = sensor.SmoothData(); Console.WriteLine($"Smoothed Reading: {smoothed}°C");
-
+```
 Data Anomaly Detection: DetectAnomaly(): Compares current readings against a rolling average of the last 5 readings. Identifying irregular spikes in temperature readings. 
 
+```c#
 Usage Example: bool isAnomaly = sensor.DetectAnomaly(35.0); Console.WriteLine(isAnomaly ? "Anomaly Detected!" : "Normal Reading");
+```
 Deviated readings will be flagged in console
 
 Graceful Shutdown: ShutdownSensor(): Stops the sensor, clears memory, and closes the database connection. Ensuring the sensor can stop safely and release resources
 
+```c#
 Usage Example: sensor.ShutdownSensor();
+```
 Q key used to begin shutdown
 
-
-
-
+---
 Sprint 5: All required features implemented, began work on advanced features
 
 Objectives: Attemp implementation of advanced feature threshold alerts. Review previous code 
 
 Threshold Alerts: CheckThreshold(): Checks if readings are below or above critical limits. Alerts display in console
 
+```c#
 Usage Example: sensor.CheckThreshold(21.5);
-
+```
+---
 Sprint 6: Completed all required and attempted advanced features
 
 
