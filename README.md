@@ -42,12 +42,14 @@ The application is modular, enabling easy additions of features and enhancements
 
 3. Project Development 
 
-
 Sprint 1: Research into initial setup of application requirements and task breakdown
 
 Objectives: 
 Created a Kanban Board with a backlog of tasks for the  project
 Researched into .net console applications to gain better understanding of app requirements
+
+
+
 
 Sprint 2: Github and coding initial setup
 
@@ -71,12 +73,12 @@ Invalid readings are flagged in the console terminal
 
 
 
-
-
-
 Logging and history storage: LogData(): Logs readings to a text file and console. StoreData(): Saves readings to the SQLite database. Database setup in InitialiseDatabase().
 
 Usage Example: sensor.LogData(25.5); sensor.StoreData(25.5);
+
+
+
 
 Sprint 4: Majority of coded features complete and reviewed
 
@@ -95,12 +97,6 @@ Graceful Shutdown: ShutdownSensor(): Stops the sensor, clears memory, and closes
 
 Usage Example: sensor.ShutdownSensor();
 Q key used to begin shutdown
-
-
-
-
-
-
 
 
 
